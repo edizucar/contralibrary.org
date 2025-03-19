@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contralibrary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Retro-futuristic font -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Global styles */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background: #000;
+      font-family: 'Orbitron', sans-serif;
+      color: #fff;
+    }
+
+    /* Starfield canvas */
+    #starsCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    /* Central title and subtext */
+    #content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #content h1 {
+      font-size: 4em;
+      margin: 0;
+      text-shadow: 0 0 10px #fff;
+    }
+    #content p {
+      font-size: 1.5em;
+      margin: 0.2em 0 1em;
+    }
+
+    /* Links container */
+    #linkContainer {
+      z-index: 10;
+    }
+
+    /* Desktop layout: absolutely positioned container */
+    @media (min-width: 768px) {
+      #linkContainer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 600px;
+        height: 600px;
+        margin: -300px 0 0 -300px; /* center container */
+      }
+    }
+
+    /* Mobile layout: relative container and vertical list */
+    @media (max-width: 767px) {
+      #linkContainer {
+        position: relative;
+        width: auto;
+        height: auto;
+        margin: 20px auto 0;
+        text-align: center;
+      }
+      .link-item {
+        position: static;
+        margin: 10px auto;
+        display: block;
+        transform: none; /* no random walk on mobile */
+      }
+    }
+
+    /* Common link styles */
+    .link-item {
+      position: absolute;
+      width: 100px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      text-decoration: none;
+      color: #fff;
+      border: 1px solid #fff;
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.5);
+      transition: background 0.3s, transform 0.3s;
+      pointer-events: auto;
+    }
+    .link-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <!-- Starfield Canvas -->
+  <canvas id="starsCanvas"></canvas>
+
+  <!-- Central Title and Subtext -->
+  <div id="content">
+    <h1>Contralibrary</h1>
+    <p>The hub for Ediz & Emilios' NAS.</p>
+  </div>
+
+  <!-- Links Container -->
+  <div id="linkContainer"></div>
+
+  <script>
+    /* =========================================
+       STARFIELD CANVAS WITH SPACE-LIKE PARALLAX
+    ========================================= */
+    const canvas = document.getElementById('starsCanvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    const starCount = 300;
+    let canvasWidth, canvasHeight;
+
+    function initCanvas() {
+      canvasWidth = window.innerWidth;
+      canvasHeight = window.innerHeight;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      stars = [];
+      for (let i = 0; i < starCount; i++) {
+        // Random depth gives a parallax feel
+        let depth = Math.random();
+        let radius = (1 - depth) * 2 + 0.2;
+        let speedFactor = (1 - depth) * 0.5;
+        stars.push({
+          x: Math.random() * canvasWidth,
+          y: Math.random() * canvasHeight,
+          radius: radius,
+          vx: (Math.random() - 0.5) * speedFactor,
+          vy: (Math.random() - 0.5) * speedFactor,
+          alpha: Math.random() * 0.5 + 0.5
+        });
+      }
+    }
+
+    function animateStars() {
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      stars.forEach(star => {
+        star.x += star.vx;
+        star.y += star.vy;
+        // Wrap around the edges
+        if (star.x < 0) star.x = canvasWidth;
+        if (star.x > canvasWidth) star.x = 0;
+        if (star.y < 0) star.y = canvasHeight;
+        if (star.y > canvasHeight) star.y = 0;
+
+        // Twinkling effect
+        star.alpha += (Math.random() - 0.5) * 0.02;
+        star.alpha = Math.max(Math.min(star.alpha, 1), 0.3);
+
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + star.alpha + ')';
+        ctx.fill();
+      });
+      requestAnimationFrame(animateStars);
+    }
+
+    window.addEventListener('resize', () => {
+      initCanvas();
+      renderLinks();
+    });
+    initCanvas();
+    animateStars();
+
+    /* =========================================
+       LINKS LAYOUT: Adaptive for Desktop and Mobile
+    ========================================= */
+    const links = [
+      { name: "qBittorrent", url: "https://qbit.contralibrary.org" },
+      { name: "Radarr", url: "https://radarr.contralibrary.org" },
+      { name: "Sonarr", url: "https://sonarr.contralibrary.org" },
+      { name: "Immich", url: "https://photos.contralibrary.org" },
+      { name: "Jellyfin", url: "https://jellyfin.contralibrary.org" },
+      { name: "About", url: "/about" },
+    ];
+
+    const container = document.getElementById('linkContainer');
+
+    function renderLinks() {
+      // Clear any existing links.
+      container.innerHTML = "";
+
+      // Check viewport width to decide layout.
+      if (window.innerWidth < 768) {
+        // Mobile layout: vertical list.
+        links.forEach(link => {
+          const a = document.createElement('a');
+          a.href = link.url;
+          a.className = 'link-item';
+          a.innerText = link.name;
+          container.appendChild(a);
+        });
+      } else {
+        // Desktop layout: parameterized ellipse with random walk.
+        const ellipseParams = {
+          centerX: 300,   // Center of the 600x600 container
+          centerY: 300,
+          radiusX: 400,   // Horizontal radius
+          radiusY: 300    // Vertical radius
+        };
+
+        links.forEach((link, index) => {
+          const angle = (2 * Math.PI / links.length) * index;
+          // Compute position using ellipse formulas.
+          const x = ellipseParams.centerX + ellipseParams.radiusX * Math.cos(angle) - 50;
+          const y = ellipseParams.centerY + ellipseParams.radiusY * Math.sin(angle) - 15;
+
+          const a = document.createElement('a');
+          a.href = link.url;
+          a.className = 'link-item';
+          a.style.left = x + 'px';
+          a.style.top = y + 'px';
+          a.innerText = link.name;
+          container.appendChild(a);
+
+          // Add a subtle random walk animation.
+          let offsetX = 0, offsetY = 0;
+          let dx = (Math.random() - 0.5) * 0.4;
+          let dy = (Math.random() - 0.5) * 0.4;
+
+          function updateLink() {
+            offsetX += dx;
+            offsetY += dy;
+            offsetX = Math.max(Math.min(offsetX, 5), -5);
+            offsetY = Math.max(Math.min(offsetY, 5), -5);
+            a.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            if (Math.random() < 0.02) {
+              dx = (Math.random() - 0.5) * 0.4;
+              dy = (Math.random() - 0.5) * 0.4;
+            }
+            requestAnimationFrame(updateLink);
+          }
+          updateLink();
+        });
+      }
+    }
+
+    // Initial render of the links.
+    renderLinks();
+  </script>
+</body>
+</html>
